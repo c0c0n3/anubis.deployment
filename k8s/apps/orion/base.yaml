@@ -8,10 +8,10 @@ spec:
   type: NodePort
   ports:
   - name: http
-    port: 1026
+    port: 8080
     protocol: TCP
-    targetPort: 1026
-    nodePort: 1026
+    targetPort: 1027
+    nodePort: 8080
   selector:
     app: orion
 

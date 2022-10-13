@@ -3,3 +3,11 @@ kind: Kustomization
 
 resources:
 - base.yaml
+
+patchesStrategicMerge:
+- sidecar.yaml
+
+configMapGenerator:
+- name: envoy-config
+  files:
+  - envoy.yaml=envoy-config.yaml
