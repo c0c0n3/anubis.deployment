@@ -8,10 +8,10 @@ spec:
   type: NodePort
   ports:
   - name: http
-    port: 8080
+    port: 1026
     protocol: TCP
-    targetPort: 1027
-    nodePort: 8080
+    targetPort: 8181
+    nodePort: 1026
   selector:
     app: orion
 
@@ -41,5 +41,9 @@ spec:
         imagePullPolicy: IfNotPresent
         name: orion
         ports:
-        - containerPort: 1026
+        - containerPort: 8080
           name: http
+      # volumes:
+      # - name: dummy-config
+      #   configMap:
+      #     name: dummy-config

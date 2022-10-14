@@ -7,7 +7,8 @@ static_resources:
   - address:
       socket_address:
         address: 0.0.0.0
-        port_value: 1027
+        # Envoy entry point to forward HTTP calls to the target service.
+        port_value: 8181
     filter_chains:
     - filters:
       - name: envoy.filters.network.http_connection_manager
@@ -34,7 +35,9 @@ static_resources:
                 envoy_grpc:
                   cluster_name: ext_authz-grpc-service
                 # Give requests more than a day to complete. Stops the go
-                # context timing out when debugging the service.
+                # context timing out when debugging the service. Plus we
+                # still don't know how fast Anubis is, so let's stop this
+                # filter from timing out after a handful of millis.
                 timeout: 100000.250s
               transport_api_version: V3
           - name: envoy.filters.http.router
@@ -51,9 +54,9 @@ static_resources:
         - endpoint:
             address:
               socket_address:
-                # Orion service.
+                # Target service.
                 address: localhost
-                port_value: 1026
+                port_value: 8080
   - name: ext_authz-grpc-service
     type: STRICT_DNS
     lb_policy: ROUND_ROBIN

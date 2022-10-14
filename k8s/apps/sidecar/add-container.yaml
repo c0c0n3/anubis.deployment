@@ -1,0 +1,25 @@
+- op: add
+  path: "/spec/template/spec/containers/-"
+  value:
+    name: envoy
+    image: "envoyproxy/envoy:v1.19.3"
+    imagePullPolicy: IfNotPresent
+    ports:
+    - containerPort: 8181
+      name: http
+    volumeMounts:
+    - name: envoy-config
+      mountPath: /etc/envoy
+- op: add
+  path: "/spec/template/spec/volumes/-"
+  value:
+    name: envoy-config
+    configMap:
+      name: envoy-config
+# NOTE. Volumes.
+# The above add op blindly assumes there's a `volumes` element in the
+# spec. That's not always the case in general, so ideally we'd cater for
+# the possibility there's no `volumes`. But that's easier said than done.
+# So for now we assume if you want a sidecar, then your Deployment has
+# a `volumes` element in it. (You can always add a dummy empty dir if
+# your pod doesn't need any volumes.)
