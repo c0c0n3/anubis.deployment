@@ -1,0 +1,11 @@
+- op: remove
+  path: "/spec/clusterIP"
+- op: add
+  path: "/spec/ports"
+  value:
+    - name: http
+      port: 1026
+      protocol: TCP
+      targetPort: 8181
+      nodePort: 1026
+      nodePort: 1026

@@ -1,0 +1,19 @@
+replicaCount: 1
+
+autoscaling:
+  enabled: false
+
+service:
+  name: orion
+  # Expose Orion's customary port to the outside world.
+  type: NodePort
+  externalPort: 1026
+  # Internally, make Orion use port 8080 b/c Envoy expects it to listen
+  # on `localhost:8080`.
+  internalPort: 8080
+
+mongo:
+  # This has no effect, the init container gets generated!
+  # So we zap the init container later in the Kustomize pipeline.
+  replicaset: false
+  dbhost: mongodb

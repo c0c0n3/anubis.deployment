@@ -5,11 +5,19 @@ resources:
 - sidecar/
 - cratedb/
 - mongodb/
-- orion/
+# A plain Kustomize build that sources the base Orion K8s descriptors from
+# our own YAML.
+# - orion/
+# Kustomize + Helm chart setup where we use Orchestra Cities' Orion chart
+# as a base.
+- orion.oc/
 - quantumleap/
 
 patchesJson6902:
 - target:
     kind: Deployment
-    name: orion
+    # name is "orion-orion" for `orion.oc/` (Kustomize w/ Helm chart) whereas
+    # just "orion" for the plain Kustomize in `orion/`.
+    name: orion-orion
+    # name: orion
   path: sidecar/add-container.yaml
