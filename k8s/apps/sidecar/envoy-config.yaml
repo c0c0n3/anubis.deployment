@@ -55,7 +55,13 @@ static_resources:
             address:
               socket_address:
                 # Target service.
-                address: localhost
+                # Note we force IPv4 instead of "localhost". That's to avoid
+                # a situation where Envoy tries connecting to the target
+                # service through IPv6 but the service only accepts IPv4
+                # connections. In this scenario Envoy would return a cryptic
+                # "503 Service Unavailable" and you'd need to roll out good
+                # ol' tcpdump to figure all that out...
+                address: 0.0.0.0
                 port_value: 8080
   - name: ext_authz-grpc-service
     type: STRICT_DNS
