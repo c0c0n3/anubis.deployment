@@ -1,0 +1,4 @@
+- op: add
+  path: "/spec/template/spec/containers/0/args"
+  value:
+    - "--bind=0.0.0.0:8080"

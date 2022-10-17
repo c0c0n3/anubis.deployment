@@ -10,7 +10,7 @@ spec:
   - name: http
     port: 8668
     protocol: TCP
-    targetPort: 8668
+    targetPort: 8080
     nodePort: 8668
   selector:
     app: quantumleap
@@ -38,7 +38,7 @@ spec:
           imagePullPolicy: IfNotPresent
           name: quantumleap
           ports:
-          - containerPort: 8668
+          - containerPort: 8080
             name: http
           env:
           - name: CRATE_HOST

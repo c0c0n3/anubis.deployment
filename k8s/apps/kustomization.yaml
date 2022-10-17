@@ -21,3 +21,7 @@ patchesJson6902:
     name: orion-orion
     # name: orion
   path: sidecar/add-container.yaml
+- target:
+    kind: Deployment
+    name: quantumleap
+  path: sidecar/add-container.yaml
