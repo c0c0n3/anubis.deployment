@@ -16,6 +16,9 @@ configMapGenerator:
   - https://raw.githubusercontent.com/orchestracities/anubis/master/config/opa-service/rego/audit.rego
   - https://raw.githubusercontent.com/orchestracities/anubis/master/config/opa-service/rego/common.rego
   - https://raw.githubusercontent.com/orchestracities/anubis/master/config/opa-service/rego/context_broker_policy.rego
+# ^ TODO. File versions.
+#   Make sure to pick the exact same files that were used to test the
+#   Anubis image we use, instead of blindly pulling them from master!
 #
 # NOTE. Config map size.
 # K8s stores the previously applied config in `metadata.annotations` which
