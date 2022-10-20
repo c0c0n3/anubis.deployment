@@ -7,8 +7,8 @@ metadata:
 spec:
   ports:
   - name: grpc
-    port: 9191
-    targetPort: 9191
+    port: 9002
+    targetPort: 9002
   selector:
     app: opa
 
@@ -32,28 +32,41 @@ spec:
     spec:
       containers:
         - name: opa
-          # image: openpolicyagent/opa:0.36.1
-          image: openpolicyagent/opa:0.36.1-envoy
+          image: openpolicyagent/opa:0.38.1-envoy-3
           securityContext:
             runAsUser: 1111
           volumeMounts:
-          - readOnly: true
-            mountPath: /policy
-            name: opa-policy
+          - mountPath: /etc/opa/policies/
+            name: opa-policies
+            readOnly: true
+          - mountPath: /etc/opa/
+            name: opa-config
+            readOnly: true
           args:
           - "run"
           - "--server"
+          - "--config-file=/etc/opa/opa.yaml"
           - "--addr=localhost:8181"
           - "--diagnostic-addr=0.0.0.0:8282"
-          - "--set=plugins.envoy_ext_authz_grpc.addr=:9191"
-          - "--set=plugins.envoy_ext_authz_grpc.query=data.anubis.allow"
-          - "--set=decision_logs.console=true"
-          - "--ignore=.*"
-          - "--log-format=json-pretty"
+          - "--set=plugins.envoy_ext_authz_grpc.addr=:9002"
           - "--log-level=debug"
-          - "/policy/"
+          - "--ignore=.*"
+          - "/etc/opa/policies/"
+          # NOTE. Avoiding explicit file paths.
+          # We'd like to avoid duplication of file paths here and in the
+          # config map we mount, which is why tell OPA to look for Rego
+          # files in `/etc/opa/policies/`. But this won't work without
+          # the ignore flag which tells OPA to ignore the `..data` dir
+          # the config map sets up. In fact, that dir contains the actual
+          # files whereas `/etc/opa/policies/*.rego` are just symlinks to
+          # those files. Without the ignore flag, OPA would read both the
+          # `policies/*.rego` and the actual sources in `..data`, resulting
+          # in a fat compile error b/c of duplicate defs.
+          # See:
+          # - https://github.com/open-policy-agent/opa/issues/1109
+          # - https://stackoverflow.com/questions/62776362
           ports:
-          - containerPort: 9191
+          - containerPort: 9002
           livenessProbe:
             httpGet:
               path: /health?plugins
@@ -69,6 +82,9 @@ spec:
             initialDelaySeconds: 5
             periodSeconds: 5
       volumes:
-        - name: opa-policy
-          secret:
-            secretName: opa-policy
+        - name: opa-config
+          configMap:
+            name: opa-config
+        - name: opa-policies
+          configMap:
+            name: opa-policies
