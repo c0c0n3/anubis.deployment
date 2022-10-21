@@ -5,6 +5,9 @@ resources:
 - opa.yaml
 
 configMapGenerator:
+- name: anubis-env
+  envs:
+  - anubis.env
 - name: opa-config
   files:
   - https://raw.githubusercontent.com/orchestracities/anubis/master/config/opa-service/opa.yaml
