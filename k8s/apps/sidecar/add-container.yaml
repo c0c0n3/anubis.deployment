@@ -13,12 +13,20 @@
     volumeMounts:
     - name: envoy-config
       mountPath: /etc/envoy
+    - name: envoy-lua-filters
+      mountPath: /etc/envoy/lua
 - op: add
   path: "/spec/template/spec/volumes/-"
   value:
     name: envoy-config
     configMap:
       name: envoy-config
+- op: add
+  path: "/spec/template/spec/volumes/-"
+  value:
+    name: envoy-lua-filters
+    configMap:
+      name: envoy-lua-filters
 # NOTE. Volumes.
 # The above add op blindly assumes there's a `volumes` element in the
 # spec. That's not always the case in general, so ideally we'd cater for

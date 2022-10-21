@@ -21,3 +21,15 @@ configMapGenerator:
 - name: envoy-config
   files:
   - envoy.yaml=envoy-config.yaml
+- name: envoy-lua-filters
+  files:
+  - https://raw.githubusercontent.com/orchestracities/anubis/master/config/opa-service/lua/JSON.lua
+  - https://raw.githubusercontent.com/orchestracities/anubis/master/config/opa-service/lua/common.lua
+  - https://raw.githubusercontent.com/orchestracities/anubis/master/config/opa-service/lua/decodejwt.lua
+# ^ TODO. File versions.
+#   Make sure to pick the exact same files that were used to test the
+#   Anubis image we use, instead of blindly pulling them from master!
+#
+# NOTE. Config map size.
+# See note in k8s/infra/security/kustomization.yaml
+#
