@@ -5,6 +5,9 @@ configMapGenerator:
 - name: envoy-config
   files:
   - envoy.yaml=envoy-config.yaml
+- name: envoy-lua-http-filter
+  files:
+  - http-filter.lua=noop-filter.lua
 
 patches:
 - path: add-container.yaml

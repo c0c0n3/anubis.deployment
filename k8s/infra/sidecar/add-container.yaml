@@ -7,7 +7,7 @@ spec:
     spec:
       containers:
       - name: envoy
-        image: "envoyproxy/envoy:v1.19.3"
+        image: "envoyproxy/envoy:v1.24.0"
         imagePullPolicy: IfNotPresent
         env:
         - name: loglevel
@@ -18,7 +18,12 @@ spec:
         volumeMounts:
         - name: envoy-config
           mountPath: /etc/envoy
+        - name: envoy-lua-http-filter
+          mountPath: /etc/envoy/lua
       volumes:
       - name: envoy-config
         configMap:
           name: envoy-config
+      - name: envoy-lua-http-filter
+        configMap:
+          name: envoy-lua-http-filter
