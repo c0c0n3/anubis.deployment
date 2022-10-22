@@ -7,8 +7,8 @@ metadata:
 spec:
   ports:
   - name: grpc
-    port: 9002
-    targetPort: 9002
+    port: 9191
+    targetPort: 9191
   selector:
     app: opa
 
@@ -51,7 +51,7 @@ spec:
           - "--config-file=/etc/opa/opa.yaml"
           - "--addr=localhost:8181"
           - "--diagnostic-addr=0.0.0.0:8282"
-          - "--set=plugins.envoy_ext_authz_grpc.addr=:9002"
+          - "--set=plugins.envoy_ext_authz_grpc.addr=:9191"
           - "--log-level=debug"
           - "--ignore=.*"
           - "/etc/opa/policies/"
@@ -69,7 +69,7 @@ spec:
           # - https://github.com/open-policy-agent/opa/issues/1109
           # - https://stackoverflow.com/questions/62776362
           ports:
-          - containerPort: 9002
+          - containerPort: 9191
           livenessProbe:
             httpGet:
               path: /health?plugins
