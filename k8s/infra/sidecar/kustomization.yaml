@@ -1,0 +1,12 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+configMapGenerator:
+- name: envoy-config
+  files:
+  - envoy.yaml=envoy-config.yaml
+
+patches:
+- path: add-container.yaml
+  target:
+    kind: Deployment
