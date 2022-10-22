@@ -2,7 +2,7 @@
   path: "/spec/template/spec/containers/-"
   value:
     name: envoy
-    image: "envoyproxy/envoy:v1.19.3"
+    image: "envoyproxy/envoy:v1.24.0"
     imagePullPolicy: IfNotPresent
     env:
     - name: loglevel
@@ -13,7 +13,7 @@
     volumeMounts:
     - name: envoy-config
       mountPath: /etc/envoy
-    - name: envoy-lua-filters
+    - name: envoy-lua-http-filter
       mountPath: /etc/envoy/lua
 - op: add
   path: "/spec/template/spec/volumes/-"
@@ -24,9 +24,9 @@
 - op: add
   path: "/spec/template/spec/volumes/-"
   value:
-    name: envoy-lua-filters
+    name: envoy-lua-http-filter
     configMap:
-      name: envoy-lua-filters
+      name: envoy-lua-http-filter
 # NOTE. Volumes.
 # The above add op blindly assumes there's a `volumes` element in the
 # spec. That's not always the case in general, so ideally we'd cater for
