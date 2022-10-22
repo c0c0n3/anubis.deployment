@@ -10,18 +10,33 @@ resources:
 # - orion/
 # Kustomize + Helm chart setup where we use Orchestra Cities' Orion chart
 # as a base.
-- orion.oc/
+#- orion.oc/
 - quantumleap/
 
 patchesJson6902:
-- target:
-    kind: Deployment
-    # name is "orion-orion" for `orion.oc/` (Kustomize w/ Helm chart) whereas
-    # just "orion" for the plain Kustomize in `orion/`.
-    name: orion-orion
-    # name: orion
-  path: sidecar/add-container.yaml
+# - target:
+#     kind: Deployment
+#     # name is "orion-orion" for `orion.oc/` (Kustomize w/ Helm chart) whereas
+#     # just "orion" for the plain Kustomize in `orion/`.
+#     name: orion-orion
+#     # name: orion
+#   path: sidecar/add-container.yaml
 - target:
     kind: Deployment
     name: quantumleap
   path: sidecar/add-container.yaml
+
+configMapGenerator:
+- name: envoy-lua-http-filter
+  behavior: replace
+  files:
+  - http-filter.lua=quantumleap/envoy-filter.lua
+  - https://raw.githubusercontent.com/orchestracities/anubis/master/config/opa-service/lua/JSON.lua
+  - https://raw.githubusercontent.com/orchestracities/anubis/master/config/opa-service/lua/common.lua
+  - https://raw.githubusercontent.com/orchestracities/anubis/master/config/opa-service/lua/decodejwt.lua
+# ^ TODO. File versions.
+#   Make sure to pick the exact same files that were used to test the
+#   Anubis image we use, instead of blindly pulling them from master!
+#
+# NOTE. Config map size.
+# See note in k8s/infra/security/kustomization.yaml
