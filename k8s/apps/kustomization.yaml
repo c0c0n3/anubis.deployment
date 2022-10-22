@@ -26,6 +26,13 @@ patchesJson6902:
     name: quantumleap
   path: sidecar/add-container.yaml
 
+# patchesStrategicMerge:
+# - quantumleap/tweak-envoy-config.yaml
+# configMapGenerator:
+# - name: envoy-config
+#   behavior: merge
+#   files:
+#   - envoy.yaml=quantumleap/tweak-envoy-config.yaml
 configMapGenerator:
 - name: envoy-lua-http-filter
   behavior: replace
