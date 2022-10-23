@@ -4,20 +4,19 @@ kind: Kustomization
 resources:
 - base.yaml
 
+components:
+- ../../infra/sidecar
+
 configMapGenerator:
 - name: db-routing
   files:
   - db-routing.yaml
+- name: envoy-lua-http-filter
+  behavior: replace
+  files:
+  - http-filter.lua=envoy-filter.lua
 
-patchesStrategicMerge:
-# At the moment, for sidecar injection to work there needs to be a "volumes"
-# element in the deployment. So we add a dummy one just in case the Deployment
-# that comes out after applying the values to the Helm chart does *not* have
-# a "volumes" element. (If it does, our dummy one will be merged in, keeping
-# whatever volumes came out of Helm.)
-- add-dummy-volume.yaml
-
-patchesJson6902:
+patches:
 # The Envoy sidecar is configured to forward HTTP requests to `localhost:8080`.
 # So we've got to start Quantum Leap on port 8080.
 - target:
