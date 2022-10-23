@@ -88,6 +88,8 @@
 #             may not add resource with an already registered id:
 #               ~G_v1_ConfigMap|~X|envoy-config
 #
+# See `k8s/test/inject-many` for a test to show this limitation.
+#
 apiVersion: kustomize.config.k8s.io/v1alpha1
 kind: Component
 

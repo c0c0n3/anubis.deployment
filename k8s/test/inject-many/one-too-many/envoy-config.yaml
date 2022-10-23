@@ -1,0 +1,6 @@
+static_resources:
+  listeners:
+  - address:
+      socket_address:
+        address: 2.2.2.2
+        port_value: 8181

@@ -1,0 +1,13 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: happy-tee-pea
+spec:
+  template:
+    spec:
+      containers:
+        - name: nginx
+          image: nginx
+          args:
+          - one
+          - two
