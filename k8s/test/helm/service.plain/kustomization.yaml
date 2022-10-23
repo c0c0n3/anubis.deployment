@@ -1,0 +1,12 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- rendered-chart.yaml
+# ^ output of:
+#   helm template service.chart/charts/servo \
+#        --values service.chart/helm-values.yaml \
+#        > service.plain/rendered-chart.yaml
+
+components:
+- ../sidecar

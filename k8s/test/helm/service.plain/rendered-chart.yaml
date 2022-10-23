@@ -1,0 +1,13 @@
+---
+# Source: servo/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: servo
+spec:
+  replicas: 2
+  template:
+    spec:
+      containers:
+      - name: servo
+        image: ser/vo:2.1.7
