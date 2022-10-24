@@ -1,3 +1,17 @@
+#
+# Inflate Orchestra Cities' Orion chart and inject a sidecar into the
+# deployment.
+#
+# Build with:
+#
+# $ cd nix
+# $ nix shell
+# $ cd ..
+# $ kustomize build --enable-helm --load-restrictor LoadRestrictionsNone \
+#             k8s/apps/orion.oc
+# # ^ or: cd k8s/apps/orion &&
+# #       kustomize build --enable-helm --load-restrictor LoadRestrictionsNone
+#
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
@@ -9,7 +23,7 @@ kind: Kustomization
 # 1. Building with Helm generators. To use Helm generators you've got to
 # pass the `--enable-helm` to the build command, e.g.
 #
-#     $ kustomize build --enable-helm k8s/apps
+#     $ kustomize build --enable-helm k8s/apps/orion.oc
 #
 # This assumes Helm v3 is in your path but you can also tell the build
 # command to use a specific Helm binary with the `--helm-command` flag.
@@ -24,6 +38,13 @@ kind: Kustomization
 # The Helm example in the repo uses `helmCharts` too:
 # _ https://github.com/kubernetes-sigs/kustomize/blob/master/examples/chart.md
 #
+# 3. Component patch not applied when using helmChart generator.
+# So we've got a Kustomize issue (bug?) to spoil the Helm/Kustomize pipeline
+# party---see k8s/test/helm for the details. Our workaround is to reapply
+# the sidecar's component patch to inject the Envoy container into the
+# Deployment that comes out of Helm inflation. Our workaround needs this
+# Kustomize flag: `--load-restrictor LoadRestrictionsNone`. See note below.
+#
 helmCharts:
 - name: orion
   valuesFile: helm-values.yaml
@@ -31,25 +52,18 @@ helmCharts:
   version: 0.1.7
   repo: https://orchestracities.github.io/charts/
 
-patchesStrategicMerge:
-# At the moment, for sidecar injection to work there needs to be a "volumes"
-# element in the deployment. So we add a dummy one just in case the Deployment
-# that comes out after applying the values to the Helm chart does *not* have
-# a "volumes" element. (If it does, our dummy one will be merged in, keeping
-# whatever volumes came out of Helm.)
-- add-dummy-volume.yaml
+components:
+- ../../infra/sidecar
 
-patchesJson6902:
+patches:
 # In our testbed, we don't need the init container the Helm chart generates.
 - target:
     kind: Deployment
-    name: orion-orion
   path: remove-init-container.yaml
 # The Envoy sidecar is configured to forward HTTP requests to `localhost:8080`.
 # So we've got to start Orion on port 8080.
 - target:
     kind: Deployment
-    name: orion-orion
   path: add-port-to-cmd.yaml
 # We set the Helm chart's internal port to 8080 (helm-values.yaml) but the
 # chart also puts that value in the Service's target port. That's not what
@@ -60,5 +74,14 @@ patchesJson6902:
 # that.
 - target:
     kind: Service
-    name: orion-orion
   path: fix-svc.yaml
+# The sidecar component we brought in earlier correctly generates the
+# config maps, but the patch to inject the Envoy container does **not**
+# get applied. (Kustomize bug?) So we reapply it here. Notice we reference
+# the original patch instead of copying the file over to this directory.
+# (Best to keep away from copy-pasta if you can.) But b/c the patch comes
+# from another dir, we've got to tell Kustomize to drop load restrictions
+# with the flag: `--load-restrictor LoadRestrictionsNone`.
+- target:
+    kind: Deployment
+  path: ../../infra/sidecar/add-container.yaml
