@@ -38,8 +38,8 @@ spec:
             runAsUser: 1111
           volumeMounts:
           - readOnly: true
-            mountPath: /policy
-            name: opa-policy
+            mountPath: /etc/opa/policies/
+            name: opa-policies
           args:
           - "run"
           - "--server"
@@ -48,10 +48,23 @@ spec:
           - "--set=plugins.envoy_ext_authz_grpc.addr=:9191"
           - "--set=plugins.envoy_ext_authz_grpc.query=data.anubis.allow"
           - "--set=decision_logs.console=true"
-          - "--ignore=.*"
           - "--log-format=json-pretty"
           - "--log-level=debug"
-          - "/policy/"
+          - "--ignore=.*"
+          - "/etc/opa/policies/"
+          # NOTE. Avoiding explicit file paths.
+          # We'd like to avoid duplication of file paths here and in the
+          # config map we mount, which is why tell OPA to look for Rego
+          # files in `/etc/opa/policies/`. But this won't work without
+          # the ignore flag which tells OPA to ignore the `..data` dir
+          # the config map sets up. In fact, that dir contains the actual
+          # files whereas `/etc/opa/policies/*.rego` are just symlinks to
+          # those files. Without the ignore flag, OPA would read both the
+          # `policies/*.rego` and the actual sources in `..data`, resulting
+          # in a fat compile error b/c of duplicate defs.
+          # See:
+          # - https://github.com/open-policy-agent/opa/issues/1109
+          # - https://stackoverflow.com/questions/62776362
           ports:
           - containerPort: 9191
           livenessProbe:
@@ -69,6 +82,6 @@ spec:
             initialDelaySeconds: 5
             periodSeconds: 5
       volumes:
-        - name: opa-policy
+        - name: opa-policies
           secret:
-            secretName: opa-policy
+            secretName: opa-policies

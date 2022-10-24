@@ -5,7 +5,7 @@ resources:
 - opa.yaml
 
 secretGenerator:
-- name: opa-policy
+- name: opa-policies
   files:
   - rego/main.rego
   - fiware.service.rego=rego/fiware/service.rego
