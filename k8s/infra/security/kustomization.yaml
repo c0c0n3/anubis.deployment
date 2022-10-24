@@ -8,6 +8,9 @@ configMapGenerator:
 - name: opa-config
   files:
   - opa-config.yaml
+- name: opa-env
+  envs:
+  - opa.env
 
 secretGenerator:
 - name: opa-policies

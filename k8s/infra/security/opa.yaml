@@ -42,6 +42,9 @@ spec:
           - mountPath: /etc/opa/policies/
             name: opa-policies
             readOnly: true
+          envFrom:
+          - configMapRef:
+              name: opa-env
           args:
           - "run"
           - "--server"
