@@ -4,8 +4,36 @@ kind: Kustomization
 resources:
 - opa.yaml
 
+configMapGenerator:
+- name: opa-config
+  files:
+  - opa-config.yaml
+
 secretGenerator:
 - name: opa-policies
   files:
   - rego/main.rego
   - fiware.service.rego=rego/fiware/service.rego
+
+# NOTE. Config map/secret size.
+# K8s stores the previously applied config in `metadata.annotations` which
+# has a size limit of 262144 bytes. (Well, that's true of the client-side
+# apply, but you could avoid the annotation with a server-side apply.)
+# Now if we packed too many Rego files in our config map, we'd risk hitting
+# the size limit when running `kubectl apply`:
+#   The ConfigMap "opa-policy-m9d658gm9f" is invalid: metadata.annotations:
+#   Too long: must have at most 262144 bytes
+# A possible workaround:
+# $ kustomize build infra/security | \
+#   kubectl apply --server-side=true --force-conflicts -f -
+# But how would it work in Argo CD?
+# Another option would be to split files among multiple config maps or
+# using an init container to download the files. But since the simplest
+# config map solution is enough at the moment, we'll keep it until we hit
+# the size limit, if ever.
+# See:
+# - https://github.com/argoproj/argo-cd/issues/820
+# - https://www.reddit.com/r/kubernetes/comments/sbw7lo/the_configmap_is_invalid_metadataannotations_too/
+# - https://stackoverflow.com/questions/51240768
+# - https://blog.atomist.com/kubernetes-apply-replace-patch/
+#
