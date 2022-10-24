@@ -2,7 +2,5 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-- security/
-- storage/
-- dbs/cratedb
-- dbs/mongodb
+- happy-tee-pea
+- one-too-many

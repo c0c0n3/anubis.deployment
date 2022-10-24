@@ -40,6 +40,11 @@ static_resources:
                 # filter from timing out after a handful of millis.
                 timeout: 100000.250s
               transport_api_version: V3
+          - name: envoy.filters.http.lua
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
+              default_source_code:
+                filename: /etc/envoy/lua/http-filter.lua
           - name: envoy.filters.http.router
             typed_config:
               "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router

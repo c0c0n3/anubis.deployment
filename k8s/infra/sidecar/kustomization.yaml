@@ -1,0 +1,107 @@
+# Sidecar injection component
+# ---------------------------
+# This component injects an Envoy sidecar into an HTTP service deployment.
+# The sidecar comes with a default config to delegate authorization
+# to OPA and a hook to plug in your own Lua filter. You can override
+# the default config easily to make the sidecar do something different
+# if our default setup doesn't suits you.
+#
+# Usage
+# -----
+# Inject a sidecar with default Envoy config
+#
+#    apiVersion: kustomize.config.k8s.io/v1beta1
+#    kind: Kustomization
+#
+#    components:
+#    - ../../infra/sidecar
+#
+# Make the sidecar use your own Envoy Lua filter
+#
+#    configMapGenerator:
+#    - name: envoy-lua-http-filter
+#      behavior: replace
+#      files:
+#      - http-filter.lua=envoy-filter.lua
+#                       # ^ file w/ your filter code
+#      - http://some/where/cool/beans.lua
+#        # ^ a lib your filter depends on; gets mounted on the
+#        # Envoy container at: /etc/envoy/lua/beans.lua
+#
+# Make the sidecar use your own Envoy config
+#
+#    configMapGenerator:
+#    - name: envoy-config
+#      behavior: replace
+#      files:
+#      - envoy.yaml=envoy-config.yaml
+#                  # ^ file w/ your Envoy config
+#
+# Details
+# -------
+# Use this component when you have a Deployment with an HTTP server
+# container you want to intercept traffic to/from. This component
+# adds an Envoy container to your Deployment with Envoy configured
+# to
+# - accept incoming connections on port 8181;
+# - ask OPA at `opa:9191` to authorise HTTP requests;
+# - forward any HTTP request OPA ok'd to your HTTP server at
+#   `localhost:8080`; and
+# - optionally pre/post-process requests/responses with your
+#   own Lua filter.
+#
+# Have a look at `envoy-config.yaml` if you want to see how that's
+# done. Obviously for all this to work, you should tweak your HTTP
+# service deployment to make sure
+#
+# - The K8s Service has a targetPort of 8181. This is because we
+#   make Envoy accept incoming connections on port 8181.
+# - The container has a containerPort of 8080 and the actual service
+#   process inside it listens to port 8080 too. This is because we
+#   make Envoy forward calls to `localhost:8080`.
+# - OPA is reachable at `opa:9191`. That's the address we tell Envoy
+#   to use.
+#
+# If you're not happy with any of these choices, just override our
+# default Envoy config (`envoy-config.yaml`) with your own as explained
+# earlier.
+#
+# Limitations
+# -----------
+# You can only build one sidecar Kustomization at a time. This is b/c
+# where there's more than one, config maps will conflict. Here's an
+# example of the problem.
+#
+#     apps
+#      |--- sidecar             # <-- the dir containing this component
+#      |--- happy-tee-pea       # <-- you inject the sidecar here
+#      |--- one-too-many        # <-- ...and here too
+#      |--- kustomization.yaml  # <-- includes all of the above
+#
+# If you run `kustomize build apps`, you should get an error similar
+# to this:
+#
+#     Error: accumulating resources:
+#       accumulation err='accumulating resources from 'one-too-many':
+#         'apps/one-too-many' must resolve to a file':
+#           recursed merging from path 'apps/one-too-many':
+#             may not add resource with an already registered id:
+#               ~G_v1_ConfigMap|~X|envoy-config
+#
+# See `k8s/test/inject-many` for a test to show this limitation.
+#
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+configMapGenerator:
+- name: envoy-config
+  files:
+  - envoy.yaml=envoy-config.yaml
+- name: envoy-lua-http-filter
+  files:
+  - http-filter.lua=noop-filter.lua
+
+patches:
+- path: add-container.yaml
+  target:
+    kind: Deployment

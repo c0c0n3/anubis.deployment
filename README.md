@@ -21,10 +21,12 @@ we can:
 
 * configure OPA and Envoy to work with Anubis;
 * pair an Envoy proxy with each service to protect;
-* configure each proxy to use OPA as an external authorization provider.
+* configure each proxy to use OPA as an external authorisation provider;
+* optionally make Envoy pre/post-process requests/responses through
+  service-specific Lua scripts. (Each service can use its own script.)
 
 
-### Our current setup
+### Proof-of-concept
 
 We've developed a Kustomize solution to do the job. In a nutshell,
 for each service to protect, we take its base deployment and tweak
@@ -42,6 +44,9 @@ Envoy then forwards the request to OPA which evaluates a Rego policy
 and tells Envoy whether or not the policy allowed that request to go
 on. If allowed, Envoy forwards the request to the service's API on
 localhost, otherwise it returns the client a fat "403 Forbidden".
+Plus, each service deployment can specify a custom Lua script to
+intercept service requests and responses that Envoy runs on each
+HTTP message exchange.
 
 Our proof-of-concept deployment demoes this security flow with a
 couple of services. We've got Orion and Quantum Leap with their
@@ -50,6 +55,9 @@ Leap sit behind their own Envoy proxy, configured to let OPA decide
 on security. OPA is configured with a trivial policy that allows a
 request only if the request contains a `fiware-service` header with
 a value of `goodfellas`. (Sorry for the dark humour :-)
+Finally, the Quantum Leap deployment plugs in its own Lua script
+to sneak a custom header in to the service response before it gets
+returned to the client: `greeting: howzit!`.
 
 
 ### Test-driving the PoC
@@ -182,10 +190,33 @@ the exact same versions we used. Sweet.
 
 #### Deployment
 After toiling away at prep steps, we're ready to deploy our PoC.
+First off, let's deploy storage, backing DBs and OPA
 
 ```bash
 $ kustomize build k8s/infra | kubectl apply -f -
-$ kustomize build --enable-helm k8s/apps | kubectl apply -f -
+```
+
+Then the two services we're going to use for testing our setup,
+Quantum Leap and Orion.
+
+```bash
+$ kustomize build k8s/apps/quantumleap | kubectl apply -f -
+$ kustomize build --enable-helm --load-restrictor LoadRestrictionsNone \
+            k8s/apps/orion.oc | kubectl apply -f -
+```
+
+Notice each Kustomize build injects a separate Envoy sidecar in the
+`Deployment` resource, so for both Quantum Leap and Orion K8s should
+report a pod container count of 2.
+
+```bash
+$ kubectl get pod
+NAME                           READY   STATUS    RESTARTS   AGE
+mongodb-6dd4bf78d9-s6qlj       1/1     Running   0          56s
+crate-0                        1/1     Running   0          49s
+opa-6888445484-vkqsz           1/1     Running   0          37s
+quantumleap-747bd56fc5-g4cjl   2/2     Running   0          18s
+orion-orion-65d5c9d9d-m8mgk    2/2     Running   0          12s
 ```
 
 #### Showtime
@@ -203,6 +234,7 @@ $ curl -v 192.168.64.27:8668/version
 > Accept: */*
 >
 < HTTP/1.1 403 Forbidden
+< greeting: howzit!
 < date: Mon, 17 Oct 2022 09:05:38 GMT
 < server: envoy
 < content-length: 0
@@ -224,6 +256,7 @@ $ curl -v 192.168.64.27:8668/version -H 'fiware-service: goodfellas'
 < content-type: application/json
 < content-length: 29
 < x-envoy-upstream-service-time: 23
+< greeting: howzit!
 <
 {
   "version": "0.8.3-dev"
@@ -242,10 +275,15 @@ $ curl -v 192.168.64.27:8668/version -H 'fiware-service: shadydeals'
 > fiware-service: shadydeals
 >
 < HTTP/1.1 403 Forbidden
+< greeting: howzit!
 < date: Mon, 17 Oct 2022 09:05:26 GMT
 < server: envoy
 < content-length: 0
 ```
+
+Notice that `greeting: howzit!` header we get back in each and every
+response, regardless of authorisation success or failure. That's the
+header the Lua filter linked to the Quantum Leap deployment outputs.
 
 Cool bananas! Calling Orion should get you similar responses. Try
 this yourself
@@ -255,6 +293,11 @@ $ curl -v 192.168.64.27:1026/version
 $ curl -v 192.168.64.27:1026/version -H 'fiware-service: goodfellas'
 $ curl -v 192.168.64.27:1026/version -H 'fiware-service: shadydeals'
 ```
+
+There should be no custom response header of `greeting: howzit!` for
+Orion though. That's because that Lua script we talked about earlier
+is private to the Quantum Leap deployment. Also, the Orion deployment
+doesn't plug in any Lua script.
 
 
 ### YAML pipeline concept
@@ -299,46 +342,52 @@ YAML or even make Kustomize fetch it from the inter webs—e.g.
 We've developed the whole pipeline with Kustomize. The "Kustomization
 code" boils down to a bunch of build declarations in YAML files we
 keep in the `k8s` dir. The `infra` subdir contains the code to set
-up OPA as well as some convenience volumes for permanent pod storage.
+up OPA, backing DBs and some convenience volumes for permanent pod
+storage, as well as a shared sidecar injection Kustomize component.
 The OPA setup is kinda straightforward with the service delegating
 policy decisions to the Rego code in `k8s/infra/security/rego`. There's
 two Rego modules in there to show how we could keep the Rego policies
 modular—pun intended. We mount each module on the OPA pod, so module
 import within the OPA service's evaluation loop works just like it
 does when you develop locally, using the `opa` command. The `apps`
-subdir of `k8s`, contains the code to deploy application services,
-backing DBs and do sidecar injection.
+subdir of `k8s`, contains the code to deploy application services.
 
 Sidecar injection works by adding an Envoy container to a service
-pod. The injection patch also takes care of mounting our Envoy config
-on the pod and starting Envoy with that config. Injecting a sidecar
-into a `Deployment` takes a couple of lines of YAML:
+pod. The injection patch also takes care of mounting a sane, but
+opinionated Envoy config on the pod and starting Envoy with that
+config. Injecting a sidecar into a `Deployment` takes a couple of
+lines of YAML:
 
 ```yaml
-patchesJson6902:
-- target:
-    kind: Deployment
-    name: some-service
-  path: sidecar/add-container.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Assuming this was your service's Kustomization file in
+# k8s/apps/your-service, you'd add these two lines:
+
+components:
+- ../../infra/sidecar
 ```
 
-But there's a catch. To keep things simple for now, we make some
-assumptions about the service you want to add a sidecar to:
+Have a read through the docs in `k8s/infra/sidecar` to find out how
+to add your own Lua script or how to use your own Envoy config if
+our one doesn't float your boat. In fact, to keep things simple,
+our built-in Envoy config makes a couple of assumptions about the
+service you want to add a sidecar to:
 
 * the HTTP server listens on port 8080;
 * the `Service` descriptor forwards traffic to the pod on port
   8181—that's where the injection code places Envoy;
-* the `Deployment` descriptor has a `volumes` field.
+* OPA is reachable at `opa:9191`.
 
 If you write the `Service` and `Deployment` descriptors yourself
 there's no prob meeting the requirements, but if you source that
 YAML from somewhere you'll typically have to tweak it to set the
-right ports and make sure the `volumes` field is there. The good
-news is that these are all easy tweaks you can do with Kustomize—for
-examples, look in the `orion.oc` and `quantumleap` dirs. The bad
-news is that we'd like a more flexible approach where injection
-just works out of the box. We'll get there eventually, but for
-now manual tweaks it is.
+right ports. The good news is that these are all easy tweaks you
+can do with Kustomize—for examples, look in the `orion.oc` and
+`quantumleap` dirs. But if you'd rather not do that, well, you
+can still override our built-in Envoy config with your own quite
+easily.
 
 One last thing about required Kustomize flags. We trigger the Helm
 processing of charts from Kustomize so you've got to make sure Kustomize
@@ -348,12 +397,19 @@ for that. Also, our pipeline relies on Helm generators so you've got
 to pass the `--enable-helm` flag to the build command, e.g.
 
 ```bash
-$ kustomize build --enable-helm k8s/apps
+$ kustomize build --enable-helm k8s/apps/orion.oc
 ```
 
 How would that work with ArgoCD? Luckily you can configure Argo CD
 to call Kustomize with the flags we need—hear it straight from the
 [horse's mouth][argocd.kust-w-helm].
+
+#### NOTE. Kustomize issue.
+At the moment we're having an issue with Kustomize where the sidecar
+component patch doesn't get applied when using `helmChart` generators.
+As a workaround, you've got to pass this additional flag to the build
+command: `--load-restrictor LoadRestrictionsNone`. Hopefully, this is
+just a stopgap fix which won't be needed going forward.
 
 
 

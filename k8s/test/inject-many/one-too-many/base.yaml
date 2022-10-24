@@ -1,0 +1,15 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: one-too-many
+spec:
+  template:
+    metadata:
+      labels:
+        wada: wada
+    spec:
+      containers:
+        - name: aweh
+          image: aweh
+          args:
+          - yo

@@ -1,6 +1,6 @@
 - op: add
-  path: "/spec/template/spec/containers/0/args/-"
+  path: "/spec/template/spec/containers/1/args/-"
   value: "-port"
 - op: add
-  path: "/spec/template/spec/containers/0/args/-"
+  path: "/spec/template/spec/containers/1/args/-"
   value: "8080"
