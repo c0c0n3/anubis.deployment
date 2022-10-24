@@ -15,8 +15,10 @@ configMapGenerator:
 secretGenerator:
 - name: opa-policies
   files:
-  - rego/main.rego
-  - fiware.service.rego=rego/fiware/service.rego
+  - https://raw.githubusercontent.com/orchestracities/anubis/master/config/opa-service/rego/anubis_management_api_policy.rego
+  - https://raw.githubusercontent.com/orchestracities/anubis/master/config/opa-service/rego/audit.rego
+  - https://raw.githubusercontent.com/orchestracities/anubis/master/config/opa-service/rego/common.rego
+  - https://raw.githubusercontent.com/orchestracities/anubis/master/config/opa-service/rego/context_broker_policy.rego
 
 # NOTE. Config map/secret size.
 # K8s stores the previously applied config in `metadata.annotations` which
