@@ -2,7 +2,9 @@ Component patch not applied when using helmChart generator
 ----------------------------------------------------------
 
 After inflating a Helm chart, applying a patch defined in a separate
-`Component` has no effect.
+`Component` has no effect. Opened a GitHub Kustomize issue about it:
+
+- https://github.com/kubernetes-sigs/kustomize/issues/4841
 
 
 ### Overview

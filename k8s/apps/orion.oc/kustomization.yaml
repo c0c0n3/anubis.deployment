@@ -40,10 +40,12 @@ kind: Kustomization
 #
 # 3. Component patch not applied when using helmChart generator.
 # So we've got a Kustomize issue (bug?) to spoil the Helm/Kustomize pipeline
-# party---see k8s/test/helm for the details. Our workaround is to reapply
-# the sidecar's component patch to inject the Envoy container into the
-# Deployment that comes out of Helm inflation. Our workaround needs this
-# Kustomize flag: `--load-restrictor LoadRestrictionsNone`. See note below.
+# party. (See https://github.com/kubernetes-sigs/kustomize/issues/4841)
+# Our workaround is to reapply the sidecar's component patch to inject
+# the Envoy container into the Deployment that comes out of Helm inflation.
+# Notice our workaround needs this Kustomize flag
+#   --load-restrictor LoadRestrictionsNone
+# See note below.
 #
 helmCharts:
 - name: orion

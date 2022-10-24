@@ -409,7 +409,8 @@ At the moment we're having an issue with Kustomize where the sidecar
 component patch doesn't get applied when using `helmChart` generators.
 As a workaround, you've got to pass this additional flag to the build
 command: `--load-restrictor LoadRestrictionsNone`. Hopefully, this is
-just a stopgap fix which won't be needed going forward.
+just a stopgap fix which won't be needed going forward. See:
+- https://github.com/kubernetes-sigs/kustomize/issues/4841
 
 
 
