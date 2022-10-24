@@ -4,3 +4,5 @@ kind: Kustomization
 resources:
 - security/
 - storage/
+- dbs/cratedb
+- dbs/mongodb
