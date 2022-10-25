@@ -22,6 +22,9 @@ secretGenerator:
 # ^ TODO. File versions.
 #   Make sure to pick the exact same files that were used to test the
 #   Anubis image we use, instead of blindly pulling them from master!
+- name: postgres-users
+  literals:
+  - postgres.password=*
 
 # NOTE. Config map/secret size.
 # K8s stores the previously applied config in `metadata.annotations` which
