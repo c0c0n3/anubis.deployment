@@ -4,3 +4,4 @@ kind: Kustomization
 resources:
 - crate.yaml
 - mongo.yaml
+- postgres.yaml
