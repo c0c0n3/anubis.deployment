@@ -1,0 +1,43 @@
+#
+# Inject a sidecar into the Policy API deployment defined in `base.yaml`.
+#
+# Build with:
+#
+# $ cd nix
+# $ nix shell
+# $ cd ..
+# $ kustomize build k8s/apps/policy-api
+# # ^ or: cd k8s/apps/policy-api && kustomize build
+#
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- base.yaml
+
+components:
+- ../../infra/sidecar
+
+configMapGenerator:
+# The Policy API Envoy sidecar executes a Policy API-specific Lua filter.
+# We deploy the filter along with its Lua dependencies through the sidecar
+# component's Lua hook.
+- name: envoy-lua-http-filter
+  behavior: replace
+  files:
+  - http-filter.lua=envoy-filter.lua
+  - https://raw.githubusercontent.com/orchestracities/anubis/master/config/opa-service/lua/JSON.lua
+  - https://raw.githubusercontent.com/orchestracities/anubis/master/config/opa-service/lua/common.lua
+  - https://raw.githubusercontent.com/orchestracities/anubis/master/config/opa-service/lua/decodejwt.lua
+- name: policy-api-env
+  envs:
+  - policy-api.env
+- name: policy-api-wac
+  files:
+  - https://raw.githubusercontent.com/orchestracities/anubis/master/config/opa-service/default_policies.ttl
+  - https://raw.githubusercontent.com/orchestracities/anubis/master/config/opa-service/default_wac_config.yml
+# ^ TODO these two should eventually be local files I think, but for now
+#        let's try reproducing the Anubis test env as is.
+
+# NOTE. Config map size.
+# See note in k8s/infra/security/kustomization.yaml

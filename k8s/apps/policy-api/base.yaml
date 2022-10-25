@@ -1,0 +1,64 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: policy-api
+  name: policy-api
+spec:
+  type: NodePort
+  ports:
+  - name: http
+    port: 8000
+    protocol: TCP
+    targetPort: 8181
+    nodePort: 8000
+  selector:
+    app: policy-api
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: policy-api
+  name: policy-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: policy-api
+  template:
+    metadata:
+      labels:
+        app: policy-api
+    spec:
+      containers:
+      - name: policy-api
+        image: "orchestracities/anubis-management-api:edge"
+        imagePullPolicy: IfNotPresent
+        command: ["uvicorn"]
+        args: ["anubis.main:app", "--reload", "--host", "0.0.0.0",
+               "--port", "8080", "--log-config", "./logging.yaml",
+               "--access-log"]
+        envFrom:
+        - configMapRef:
+            name: policy-api-env
+        env:
+        - name: DB_PASSWORD
+          value: "*"
+          # TODO read from secret
+          # valueFrom:
+          #   secretKeyRef:
+          #     name: postgres-users
+          #     key: postgres.password
+        ports:
+        - containerPort: 8080
+          name: http
+        volumeMounts:
+        - name: policy-api-wac
+          mountPath: /home/apiuser/config/opa-service/
+      volumes:
+      - name: policy-api-wac
+        configMap:
+          name: policy-api-wac
