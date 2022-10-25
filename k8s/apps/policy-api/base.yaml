@@ -46,12 +46,10 @@ spec:
             name: policy-api-env
         env:
         - name: DB_PASSWORD
-          value: "*"
-          # TODO read from secret
-          # valueFrom:
-          #   secretKeyRef:
-          #     name: postgres-users
-          #     key: postgres.password
+          valueFrom:
+            secretKeyRef:
+              name: postgres-users
+              key: postgres.password
         ports:
         - containerPort: 8080
           name: http
