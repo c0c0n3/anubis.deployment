@@ -25,3 +25,15 @@ patches:
     kind: Deployment
     name: orion
   path: add-port-arg.yaml
+
+configMapGenerator:
+# The Orion Envoy sidecar executes an Orion-specific Lua filter.
+# We deploy the filter along with its Lua dependencies through the sidecar
+# component's Lua hook.
+- name: envoy-lua-http-filter
+  behavior: replace
+  files:
+  - http-filter.lua=envoy-filter.lua
+  - https://raw.githubusercontent.com/orchestracities/anubis/master/config/opa-service/lua/JSON.lua
+  - https://raw.githubusercontent.com/orchestracities/anubis/master/config/opa-service/lua/common.lua
+  - https://raw.githubusercontent.com/orchestracities/anubis/master/config/opa-service/lua/decodejwt.lua
