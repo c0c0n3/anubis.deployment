@@ -12,6 +12,11 @@ spec:
     protocol: TCP
     targetPort: 8181
     nodePort: 8000
+  - name: backdoor
+    port: 9090
+    protocol: TCP
+    targetPort: 8080
+    nodePort: 9090
   selector:
     app: policy-api
 
