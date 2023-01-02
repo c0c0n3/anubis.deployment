@@ -6,6 +6,18 @@ After inflating a Helm chart, applying a patch defined in a separate
 
 - https://github.com/kubernetes-sigs/kustomize/issues/4841
 
+The setup to reproduce the issue is documented below. The problem with
+this setup is that both `helmCharts` and `components` stanzas are in
+the same file, but Kustomize processes components before generators
+(like `helmCharts`) so the patch the `Component` brings in winds up
+in the sink of no return. The Kustomize guys commented on the issue
+suggesting the component should be declared in an overlay that also
+includes a Helm chart Kustomization from a separate directory---see
+fix they explained in the comments. Case closed? I'd say yes, but
+it'd be nice if you were able to keep both stanzas in the same file
+as documented in the setup below. So I'll keep the below docs for
+the record.
+
 
 ### Overview
 
