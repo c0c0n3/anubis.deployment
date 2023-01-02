@@ -201,8 +201,7 @@ Quantum Leap and Orion.
 
 ```bash
 $ kustomize build k8s/apps/quantumleap | kubectl apply -f -
-$ kustomize build --enable-helm --load-restrictor LoadRestrictionsNone \
-            k8s/apps/orion.oc | kubectl apply -f -
+$ kustomize build --enable-helm k8s/apps/orion.oc | kubectl apply -f -
 ```
 
 Notice each Kustomize build injects a separate Envoy sidecar in the
@@ -362,8 +361,8 @@ lines of YAML:
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-# Assuming this was your service's Kustomization file in
-# k8s/apps/your-service, you'd add these two lines:
+# Assuming this is your service's Kustomization file in
+# k8s/apps/your-service, add these two lines:
 
 components:
 - ../../infra/sidecar
@@ -403,14 +402,6 @@ $ kustomize build --enable-helm k8s/apps/orion.oc
 How would that work with ArgoCD? Luckily you can configure Argo CD
 to call Kustomize with the flags we need—hear it straight from the
 [horse's mouth][argocd.kust-w-helm].
-
-#### NOTE. Kustomize issue.
-At the moment we're having an issue with Kustomize where the sidecar
-component patch doesn't get applied when using `helmChart` generators.
-As a workaround, you've got to pass this additional flag to the build
-command: `--load-restrictor LoadRestrictionsNone`. Hopefully, this is
-just a stopgap fix which won't be needed going forward. See:
-- https://github.com/kubernetes-sigs/kustomize/issues/4841
 
 
 
