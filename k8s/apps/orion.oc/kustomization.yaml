@@ -1,89 +1,26 @@
 #
-# Inflate Orchestra Cities' Orion chart and inject a sidecar into the
-# deployment.
+# Inflate Orchestra Cities' Orion chart, tweak it and then inject a
+# sidecar into the deployment.
 #
 # Build with:
 #
 # $ cd nix
 # $ nix shell
 # $ cd ..
-# $ kustomize build --enable-helm --load-restrictor LoadRestrictionsNone \
-#             k8s/apps/orion.oc
-# # ^ or: cd k8s/apps/orion &&
-# #       kustomize build --enable-helm --load-restrictor LoadRestrictionsNone
+# $ kustomize build --enable-helm k8s/apps/orion.oc
+# # ^ or: cd k8s/apps/orion.oc && kustomize build --enable-helm
 #
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-# A Helm generator pulls down a Helm chart, renders the chart with any
-# value files you specify and then makes the output YAML available to
-# your Kustomize config to further tweak it.
-#
-# NOTE
-# 1. Building with Helm generators. To use Helm generators you've got to
-# pass the `--enable-helm` to the build command, e.g.
-#
-#     $ kustomize build --enable-helm k8s/apps/orion.oc
-#
-# This assumes Helm v3 is in your path but you can also tell the build
-# command to use a specific Helm binary with the `--helm-command` flag.
-# See
-# - https://github.com/kubernetes-sigs/kustomize/blob/master/examples/chart.md
-#
-# 2. `helmChartInflationGenerator`. That's the generator name you'll find
-# in the official docs (retrieved Oct 2022)
-# - https://kubectl.docs.kubernetes.io/references/kustomize/builtins/
-# but it was actually deprecated in v4.1.0 in favour of `helmCharts`:
-# - https://github.com/kubernetes-sigs/kustomize/releases/tag/kustomize%2Fv4.1.0
-# The Helm example in the repo uses `helmCharts` too:
-# _ https://github.com/kubernetes-sigs/kustomize/blob/master/examples/chart.md
-#
-# 3. Component patch not applied when using helmChart generator.
-# So we've got a Kustomize issue (bug?) to spoil the Helm/Kustomize pipeline
-# party. (See https://github.com/kubernetes-sigs/kustomize/issues/4841)
-# Our workaround is to reapply the sidecar's component patch to inject
-# the Envoy container into the Deployment that comes out of Helm inflation.
-# Notice our workaround needs this Kustomize flag
-#   --load-restrictor LoadRestrictionsNone
-# See note below.
-#
-helmCharts:
-- name: orion
-  valuesFile: helm-values.yaml
-  releaseName: orion
-  version: 0.1.7
-  repo: https://orchestracities.github.io/charts/
+# We first have to inflate and tweak the chart, then inject the sidecar
+# afterwards. Why not do everything with just one Kustomization? i.e.
+# why not declare the `components` stanza in `app/kustomization.yaml`?
+# Sadly, that's not possible b/c Kustomize processes components before
+# generators---see the note about it in `k8s/test/helm/README.md`.
+
+resources:
+- app
 
 components:
 - ../../infra/sidecar
-
-patches:
-# In our testbed, we don't need the init container the Helm chart generates.
-- target:
-    kind: Deployment
-  path: remove-init-container.yaml
-# The Envoy sidecar is configured to forward HTTP requests to `localhost:8080`.
-# So we've got to start Orion on port 8080.
-- target:
-    kind: Deployment
-  path: add-port-to-cmd.yaml
-# We set the Helm chart's internal port to 8080 (helm-values.yaml) but the
-# chart also puts that value in the Service's target port. That's not what
-# we want since the Service should forward to Envoy which is on port 8181.
-# We also set the Helm chart's service type to `NodePort` but the chart
-# outputs a `clusterIP: None` which is invalid when using a node port.
-# Finally, the `nodePort` field doesn't get set to 1026. So we fix all
-# that.
-- target:
-    kind: Service
-  path: fix-svc.yaml
-# The sidecar component we brought in earlier correctly generates the
-# config maps, but the patch to inject the Envoy container does **not**
-# get applied. (Kustomize bug?) So we reapply it here. Notice we reference
-# the original patch instead of copying the file over to this directory.
-# (Best to keep away from copy-pasta if you can.) But b/c the patch comes
-# from another dir, we've got to tell Kustomize to drop load restrictions
-# with the flag: `--load-restrictor LoadRestrictionsNone`.
-- target:
-    kind: Deployment
-  path: ../../infra/sidecar/add-container.yaml

@@ -1,0 +1,57 @@
+#
+# Inflate Orchestra Cities' Orion chart and then tweak it.
+#
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# A Helm generator pulls down a Helm chart, renders the chart with any
+# value files you specify and then makes the output YAML available to
+# your Kustomize config to further tweak it.
+#
+# NOTE
+# 1. Building with Helm generators. To use Helm generators you've got to
+# pass the `--enable-helm` to the build command, e.g.
+#
+#     $ kustomize build --enable-helm k8s/apps/orion.oc
+#
+# This assumes Helm v3 is in your path but you can also tell the build
+# command to use a specific Helm binary with the `--helm-command` flag.
+# See
+# - https://github.com/kubernetes-sigs/kustomize/blob/master/examples/chart.md
+#
+# 2. `helmChartInflationGenerator`. That's the generator name you'll find
+# in the official docs (retrieved Oct 2022)
+# - https://kubectl.docs.kubernetes.io/references/kustomize/builtins/
+# but it was actually deprecated in v4.1.0 in favour of `helmCharts`:
+# - https://github.com/kubernetes-sigs/kustomize/releases/tag/kustomize%2Fv4.1.0
+# The Helm example in the repo uses `helmCharts` too:
+# _ https://github.com/kubernetes-sigs/kustomize/blob/master/examples/chart.md
+#
+helmCharts:
+- name: orion
+  valuesFile: helm-values.yaml
+  releaseName: orion
+  version: 0.1.7
+  repo: https://orchestracities.github.io/charts/
+
+
+patches:
+# In our testbed, we don't need the init container the Helm chart generates.
+- target:
+    kind: Deployment
+  path: remove-init-container.yaml
+# The Envoy sidecar is configured to forward HTTP requests to `localhost:8080`.
+# So we've got to start Orion on port 8080.
+- target:
+    kind: Deployment
+  path: add-port-to-cmd.yaml
+# We set the Helm chart's internal port to 8080 (helm-values.yaml) but the
+# chart also puts that value in the Service's target port. That's not what
+# we want since the Service should forward to Envoy which is on port 8181.
+# We also set the Helm chart's service type to `NodePort` but the chart
+# outputs a `clusterIP: None` which is invalid when using a node port.
+# Finally, the `nodePort` field doesn't get set to 1026. So we fix all
+# that.
+- target:
+    kind: Service
+  path: fix-svc.yaml
