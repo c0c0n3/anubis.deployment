@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: keycloak
+  name: keycloak
+spec:
+  type: NodePort
+  ports:
+  - port: 8080
+    targetPort: 8080
+    nodePort: 8080
+    name: http
+  selector:
+    app: keycloak
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keycloak
+  labels:
+    app: keycloak
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: keycloak
+  template:
+    metadata:
+      labels:
+        app: keycloak
+    spec:
+      containers:
+      - name: keycloak
+        image: quay.io/keycloak/keycloak:19.0.1
+        imagePullPolicy: IfNotPresent
+        args:
+        - "start-dev"
+        - "--import-realm"
+        ports:
+        - containerPort: 8080
+          name: http
+        envFrom:
+        - configMapRef:
+            name: keycloak-env
+        env:
+        - name: KEYCLOAK_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-users
+              key: admin.password
+        volumeMounts:
+        - mountPath: /opt/keycloak/data/import/
+          name: keycloak-test-realm
+      volumes:
+        - name: keycloak-test-realm
+          configMap:
+            name: keycloak-test-realm

@@ -1,6 +1,19 @@
+# Same as
+# - https://github.com/orchestracities/anubis/blob/master/config/opa-service/opa.yaml
+# except for the policy-api port which is 8080 in our case instead of 8000.
 plugins:
   envoy_ext_authz_grpc:
     addr: ":9191"
-    query: "data.anubis.allow"
+    path: envoy/authz/allow
+    dry-run: false
+    enable-reflection: true
 decision_logs:
-  console: true
+  service: acmecorp
+  resource: v1/audit/logs
+  reporting:
+    min_delay_seconds: 10
+    max_delay_seconds: 180
+services:
+  acmecorp:
+    url: http://policy-api:8080
+    response_header_timeout_seconds: 5

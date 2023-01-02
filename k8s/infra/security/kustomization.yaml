@@ -2,7 +2,9 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
+- keycloak.yaml
 - opa.yaml
+- secrets
 
 configMapGenerator:
 - name: opa-config
@@ -11,12 +13,23 @@ configMapGenerator:
 - name: opa-env
   envs:
   - opa.env
+- name: keycloak-env
+  envs:
+  - keycloak.env
+- name: keycloak-test-realm
+  files:
+  - https://raw.githubusercontent.com/orchestracities/keycloak-scripts/master/realm-export-empty.json
 
 secretGenerator:
 - name: opa-policies
   files:
-  - rego/main.rego
-  - fiware.service.rego=rego/fiware/service.rego
+  - https://raw.githubusercontent.com/orchestracities/anubis/master/config/opa-service/rego/anubis_management_api_policy.rego
+  - https://raw.githubusercontent.com/orchestracities/anubis/master/config/opa-service/rego/audit.rego
+  - https://raw.githubusercontent.com/orchestracities/anubis/master/config/opa-service/rego/common.rego
+  - https://raw.githubusercontent.com/orchestracities/anubis/master/config/opa-service/rego/context_broker_policy.rego
+# ^ TODO. File versions.
+#   Make sure to pick the exact same files that were used to test the
+#   Anubis image we use, instead of blindly pulling them from master!
 
 # NOTE. Config map/secret size.
 # K8s stores the previously applied config in `metadata.annotations` which

@@ -18,7 +18,7 @@
       in {
         defaultPackage.${system} = with sysPkgs; buildEnv {
           name = "cluster-tools-shell";
-          paths = [ git kubectl kubernetes-helm kustomize opa argocd ];
+          paths = [ git jq kubectl kubernetes-helm kustomize opa argocd ];
         };
       };
     in
